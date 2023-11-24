@@ -1,35 +1,52 @@
 package net.metainfo.countdown
 
+import android.content.ContentValues.TAG
 import android.os.CountDownTimer
+import android.util.Log
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 class MainViewModel : ViewModel() {
-    var timer = Timer()
+    var _uiStateFlow = MutableStateFlow<Long>(0L)
+    val uiState = _uiStateFlow.asStateFlow()
 
+    lateinit var timer: Timer
+
+    fun setTimer(min: Int, sec: Int) {
+        timer = Timer(min, sec, 1000L, _uiStateFlow)
+    }
 
     fun start() {
         timer.start()
     }
 }
 
-class Timer {
-    private lateinit var t: CountDownTimer
+class Timer(
+    min: Int,
+    sec: Int,
+    interval: Long = 1000L,
+    val state: MutableStateFlow<Long>
+): CountDownTimer(min * 60000L + sec * 1000L, interval) {
 
-    fun setTimer(min: Int, sec: Int) {
-        t = object: CountDownTimer(10000, 100) {
-            override fun onTick(p0: Long) {
-                TODO("Not yet implemented")
-            }
+    private var remain: Long = 0
 
-            override fun onFinish() {
-                TODO("Not yet implemented")
-            }
+    override fun onTick(millisUntilFinished: Long) {
+        remain = millisUntilFinished
+        Log.d(TAG, "onTick: ${remain} - ${millisUntilFinished}")
+        state.update {
+            millisUntilFinished
         }
     }
 
-    fun start() {
-        t.start()
+    override fun onFinish() {
+        Log.d(TAG, "onFinish: ${remain}")
+        state.update {
+            remain
+        }
     }
+
 
 }
 
